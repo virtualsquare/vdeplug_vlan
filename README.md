@@ -1,5 +1,5 @@
 # vdeplug\_vlan
-802.1q (vlan) support nested plugin for vdeplug4
+802.1q (vlan) nested plugin for vdeplug4
 
 This libvdeplug plugin module implements VLANs.
 
