@@ -1,0 +1,94 @@
+.\"* libvdeplug: a network namespace as a user library
+.\" Copyright (C) 2018 Michele Nalli. University of Bologna. <michele.nalli@studio.unibo.it>
+.\"
+.\" This library is free software; you can redistribute it and/or
+.\" modify it under the terms of the GNU Lesser General Public
+.\" License as published by the Free Software Foundation; either
+.\" version 2.1 of the License, or (at your option) any later version.
+.\"
+.\" This library is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" Lesser General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU Lesser General Public
+.\" License along with this library; if not, write to the Free Software
+.\" Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+.TH LIBVDEPLUG_VLAN 1 "April 30, 2017" "Virtual Distributed Ethernet"
+.SH NAME
+libvdeplug_vlan \- vdeplug module: implements VLANs.
+.SH SYNOPSIS
+libvdeplug_vlan.so
+.SH DESCRIPTION
+This is a libvdeplug module implementing VLANs (IEEE 802.1Q).
+
+With this plugin VLANs are implemented in a distributed fashion. The tagging (and
+untagging) of the packets is done, not by the switch, but by the plugin
+(attached to the VM).
+
+This module of libvdeplug4 can be used in any program supporting vde, like
+\fBvde_plug\fR, \fBkvm\fR, \fBqemu\fR, \fBuser-mode-linux\fR and \fBvirtualbox\fR.
+
+The vde_plug_url syntax of this module is the following:
+.RS
+.B vlan://\fB[\fIuntagged_vlan\fR/\fB][\fR[OPTION][/OPTION]...\fB]{\fIvde nested url\fP}
+.RE
+
+\fIuntagged_vlan\fR is the number of the VLAN to which the virtual machine is
+connected in untagged mode. The traffic on this VLAN will be seen by the VM as
+untagged.
+If omitted the default value is 0, an invalid VLAN number meaning that the
+VM is not connected to any VLAN in untagged mode.
+.SH OPTIONS
+.TP
+\fBu, untag
+Untagged traffic on the network will be seen by the VM as traffic tagged with this tag.
+The default value is 0, an invalid VLAN number meaning untagged traffic will not
+be tagged.
+.br
+If we are sure that the traffic going by over the virtual link will only be tagged,
+untag argument is useless.
+.br
+If untagged traffic is expected and untag is 0, \fIuntagged_vlan\fR should be 0 too;
+otherwise there would not be a method to tell untagged traffic from traffic tagged for the
+untagged VLAN, and errors during send or receive may occur.
+.TP
+\fBt, tag
+A string used to specify the VLANs to which the VM is connected in tagged mode.
+The string is made up of a list of tokens separated by ":" or ".". These tokens
+can have two forms:
+.br
+(1) A single vlan tag number meaning that the VM is connected to that VLAN in tagged mode.
+.br
+(2) Two numbers separated by "-", meaning that the tagged packets sent out by
+the VM with the first number as VLAN tag are remapped on the VLAN with the second
+tag number and the packets received by the VM on the VLAN with the second number
+are remapped on the VLAN with the first number.
+.TP
+\fBx, trunk
+A boolean argument to be used only if the connection uses trunking. If used the VM will
+be able to send and receive packets from VLANs not listed in the tag string.
+.br
+.SH EXAMPLES
+.TP
+.B vlan://3{tap://mytap}
+The VM is connected to vlan 3 and receives only traffic from here.
+
+.TP
+.B vlan://3[untag=4/trunk/tag=10:11-12:12-11]{vde:///tmp/myswitch}
+The VM is connected to vlan 3 in untagged mode and receive untagged traffic with
+vlan tag 4. The vlan also receives traffic from VLANs 10, 11 and 12. VLANs 11 and
+12 are switched.
+
+.SH NOTICE
+Virtual Distributed Ethernet is not related in any way with
+www.vde.com ("Verband der Elektrotechnik, Elektronik und Informationstechnik"
+i.e. the German "Association for Electrical, Electronic & Information
+Technologies").
+.SH SEE ALSO
+\fBvde_plug\fP(1).
+.SH BUGS
+Bug reports should be addressed to <info@virtualsquare.org>
+.SH AUTHOR
+Renzo Davoli <renzo@cs.unibo.it>
