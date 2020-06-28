@@ -9,11 +9,13 @@ This module of libvdeplug4 can be used in any program supporting VDE like vde\_p
 
 Requirements: [vdeplug4](https://github.com/rd235/vdeplug4).
 
-vdeplug\_vlan uses the auto-tools, so the standard procedure to build and install this vdeplug plugin module is the following:
+vdeplug\_vlan uses cmake, so the standard procedure to build and install
+this vdeplug plugin module is the following:
 
-```
-$ autoreconf -if
-$ ./configure
+```sh
+$ mkdir build
+$ cd build
+$ cmake ..
 $ make
 $ sudo make install
 ```
