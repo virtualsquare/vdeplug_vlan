@@ -342,8 +342,11 @@ static int vde_vlan_ctlfd(VDECONN *conn) {
 }
 
 static int vde_vlan_close(VDECONN *conn) {
+	int rv;
 	struct vde_vlan_conn *vde_conn = (struct vde_vlan_conn *)conn;
 	if (vde_conn->tag[LR] != NULL) free(vde_conn->tag[LR]);
 	if (vde_conn->tag[RL] != NULL) free(vde_conn->tag[RL]);
-	return vde_close(vde_conn->conn);
+	rv = vde_close(vde_conn->conn);
+	free(vde_conn);
+	return rv;
 }
