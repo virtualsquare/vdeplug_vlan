@@ -77,21 +77,24 @@ meaning that the VM is not connected to any VLAN in untagged mode.
     A boolean argument to be used only if the connection uses trunking. If used the VM will
     be able to send and receive packets from VLANs not listed in the tag string.
 
+  * `q`, `qinq`, `ad`:
+    Use the ethernet type 0x88A8 for the double tagging protool 802.1ad (also known as QinQ).
+
 ## EXAMPLES
 
-```
-vlan://3{tap://mytap}
-```
+  `vlan://3{tap://mytap}`
 
   The VM is connected to vlan 3 and receives only traffic from here.
 
-```
-vlan://3[untag=4/trunk/tag=10:11-12:12-11]{vde:///tmp/myswitch}
-```
+  `vlan://3[untag=4/trunk/tag=10:11-12:12-11]{vde:///tmp/myswitch}`
 
   The VM is connected to vlan 3 in untagged mode and receive untagged traffic with
   vlan tag 4. The vlan also receives traffic from VLANs 10, 11 and 12. VLANs 11 and
   12 are switched.
+
+  `vdens vlan://4{vlan://5/qinq{vxvde://234.1.2.3}}`
+
+  This example uses 802.1ad: the VDE client is connected to the VLAN 4 of the QinQ VLAN 5.
 
 ## NOTICE
 
@@ -100,8 +103,4 @@ und Informationstechnik" i.e. the German "Association for Electrical, Electronic
 
 ## SEE ALSO
 `vde_plug`(1)
-
-## AUTHOR
-VirtualSquare. Project leader: Renzo Davoli
-
 

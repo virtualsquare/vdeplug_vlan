@@ -20,9 +20,9 @@
 .\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
 .\" MA 02110-1301 USA.
 .\"
-.\" generated with Ronn-NG/v0.9.1
-.\" http://github.com/apjanke/ronn-ng/tree/0.9.1
-.TH "LIBVDEPLUG_VLAN" "1" "June 2020" "VirtualSquare"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "LIBVDEPLUG_VLAN" "1" "July 2020" "VirtualSquare"
 .SH "NAME"
 \fBlibvdeplug_vlan\fR \- vdeplug nested module: VLAN (802\.1Q)
 .SH "SYNOPSIS"
@@ -55,6 +55,9 @@ A string used to specify the VLANs to which the VM is connected in tagged mode\.
 .TP
 \fBx\fR, \fBtrunk\fR
 A boolean argument to be used only if the connection uses trunking\. If used the VM will be able to send and receive packets from VLANs not listed in the tag string\.
+.TP
+\fBq\fR, \fBqinq\fR, \fBad\fR
+Use the wthernet type 0x88A8 for the double tagging protool 802\.1ad (also known as QinQ)\.
 .SH "EXAMPLES"
 \fBvlan://3{tap://mytap}\fR
 .P
@@ -63,9 +66,11 @@ The VM is connected to vlan 3 and receives only traffic from here\.
 \fBvlan://3[untag=4/trunk/tag=10:11\-12:12\-11]{vde:///tmp/myswitch}\fR
 .P
 The VM is connected to vlan 3 in untagged mode and receive untagged traffic with vlan tag 4\. The vlan also receives traffic from VLANs 10, 11 and 12\. VLANs 11 and 12 are switched\.
+.P
+\fBvdens vlan://4{vlan://5/qinq{vxvde://234\.1\.2\.3}}\fR
+.P
+This example uses 802\.1ad: the VDE client is connected to the VLAN 4 of the QinQ VLAN 5\.
 .SH "NOTICE"
 Virtual Distributed Ethernet is not related in any way with www\.vde\.com ("Verband der Elektrotechnik, Elektronik und Informationstechnik" i\.e\. the German "Association for Electrical, Electronic & Information Technologies")\.
 .SH "SEE ALSO"
 \fBvde_plug\fR(1)
-.SH "AUTHOR"
-VirtualSquare\. Project leader: Renzo Davoli

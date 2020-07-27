@@ -28,6 +28,10 @@
 #include <libvdeplug.h>
 #include <libvdeplug_mod.h>
 
+#ifndef ETHERTYPE_QINQ
+#define ETHERTYPE_QINQ 0x88A8
+#endif
+
 static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
 		struct vde_open_args *open_args);
 static ssize_t vde_vlan_recv(VDECONN *conn,void *buf,size_t len,int flags);
@@ -53,7 +57,7 @@ struct vde_vlan_conn {
 	uint16_t ntag;	/* lenght of tag[0] and tag[1] arrays */
 	uint16_t *tag[2]; /* remap vlans */
 	char trunk;		/* boolean */
-	// char qinq;
+	uint16_t ether_type; // ETHERTYPE_VLAN or ETHERTYPE_QINQ
 };
 
 /* Structure of the VLAN header:
@@ -164,7 +168,7 @@ static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
 	char *tagstr = "";
 	char *untagstr = "";
 	char *trunkstr = NULL;
-	// char *qinqstr = NULL;
+	char *qinqstr = NULL;
 	struct vdeparms parms[] = {
 		{"u", &untagstr},
 		{"untag", &untagstr},
@@ -172,8 +176,9 @@ static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
 		{"tag", &tagstr},
 		{"x", &trunkstr},
 		{"trunk", &trunkstr},
-		// {"q", &qinqstr},
-		// {"qinq", &qinqstr},
+		{"q", &qinqstr},
+		{"qinq", &qinqstr},
+		{"ad", &qinqstr},
 		{NULL, NULL}};
 	VDECONN *conn;
 
@@ -195,7 +200,7 @@ static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
 	newconn->tag2untag = strtol(untagstr, NULL, 0) & VLANMASK;
 	newconn->ntag = tag_parse(tagstr, newconn->tag);
 	newconn->trunk = (trunkstr != NULL);
-	// newconn->qinq = (qinqstr != NULL);
+	newconn->ether_type = (qinqstr == NULL) ? ETHERTYPE_VLAN : ETHERTYPE_QINQ;
 	return (VDECONN *) newconn;
 
 error:
@@ -223,7 +228,7 @@ static ssize_t vde_vlan_recv(VDECONN *conn,void *buf,size_t len,int flags) {
 		/* Get VLAN header from Ethernet header:
 		 	The VLAN header is after the Ethernet header */
 		struct vlan_hdr *vlanhdr = (void *) (hdr + 1);
-		if (hdr->ether_type == htons(ETHERTYPE_VLAN)) { /* TAGGED received */
+		if (hdr->ether_type == htons(vde_conn->ether_type)) { /* TAGGED received */
 			/* VLAN number */
 			uint16_t vlan = ntohs(vlanhdr->vlan) & VLANMASK;
 			if (vlan == vde_conn->untagged) {
@@ -247,7 +252,7 @@ static ssize_t vde_vlan_recv(VDECONN *conn,void *buf,size_t len,int flags) {
 				memmove(vlanhdr + 1, vlanhdr, newlen - (sizeof(struct ether_header) + sizeof(struct vlan_hdr)));
 				vlanhdr->ether_type = hdr->ether_type;
 				vlanhdr->vlan = htons(vde_conn->tag2untag);
-				hdr->ether_type = htons(ETHERTYPE_VLAN);
+				hdr->ether_type = htons(vde_conn->ether_type);
 				return newlen;
 			} else if (vde_conn->untagged != 0) /* if tag2untag == 0 should be untagged == 0 */
 				goto error;
@@ -269,7 +274,7 @@ static ssize_t vde_vlan_send(VDECONN *conn,const void *buf, size_t len,int flags
 
 	if (len >= sizeof(struct ether_header)) {
 		const struct ether_header *hdr = buf;
-		if (hdr->ether_type == htons(ETHERTYPE_VLAN) /*&& !vde_conn->qinq*/) { /* TAGGED to send */
+		if (hdr->ether_type == htons(vde_conn->ether_type) /*&& !vde_conn->qinq*/) { /* TAGGED to send */
 			/* The packet is already tagged */
 			struct vlan_hdr *vlanhdr = (void *) (hdr + 1);
 			/* Get vlan number of the packet */
@@ -314,7 +319,7 @@ static ssize_t vde_vlan_send(VDECONN *conn,const void *buf, size_t len,int flags
 					struct vlan_hdr *newvlanhdr = (void *) (newhdr + 1);
 					/* Copy ethernet header in the local buffer */
 					*newhdr = *hdr;
-					newhdr->ether_type = htons(ETHERTYPE_VLAN);
+					newhdr->ether_type = htons(vde_conn->ether_type);
 					/* Fill vlan header with the untagged VLAN's tag */
 					newvlanhdr->vlan = htons(vde_conn->untagged);
 					newvlanhdr->ether_type = hdr->ether_type;
