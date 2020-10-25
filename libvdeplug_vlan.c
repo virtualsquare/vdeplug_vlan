@@ -32,10 +32,10 @@
 #define ETHERTYPE_QINQ 0x88A8
 #endif
 
-static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
+static VDECONN *vde_vlan_open(char *vde_url, char *descr, int interface_version,
 		struct vde_open_args *open_args);
-static ssize_t vde_vlan_recv(VDECONN *conn,void *buf,size_t len,int flags);
-static ssize_t vde_vlan_send(VDECONN *conn,const void *buf,size_t len,int flags);
+static ssize_t vde_vlan_recv(VDECONN *conn, void *buf, size_t len, int flags);
+static ssize_t vde_vlan_send(VDECONN *conn, const void *buf, size_t len, int flags);
 static int vde_vlan_datafd(VDECONN *conn);
 static int vde_vlan_ctlfd(VDECONN *conn);
 static int vde_vlan_close(VDECONN *conn);
@@ -110,8 +110,7 @@ static uint16_t tag_parse(char *tagstr, uint16_t **tag) {
 	char *saveptr;
 	char *scan;
 	/* Copy the whole tagstr in tagstrcpy */
-	strncpy(tagstrcpy, tagstr, len);
-	tagstrcpy[len] = 0;
+	snprintf(tagstrcpy, len, "%s", tagstr);
 	/* Count the number of tokens in the string (tokens limited by '.' or ':') */
 	for (count = 0, scan = tagstrcpy; strtok_r(scan, ".:", &saveptr); scan = NULL)
 		count++;
@@ -159,9 +158,10 @@ static uint16_t tagck(struct vde_vlan_conn *vde_conn, uint16_t vlan, int dir) {
 	return retval;
 }
 
-static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
+static VDECONN *vde_vlan_open(char *vde_url, char *descr, int interface_version,
 		struct vde_open_args *open_args)
 {
+	(void) interface_version;
 	/* Return value on success; dynamically allocated */
 	struct vde_vlan_conn *newconn=NULL;
 	char *nested_url;
@@ -191,7 +191,7 @@ static VDECONN *vde_vlan_open(char *vde_url, char *descr,int interface_version,
 	if (conn == NULL)
 		return  NULL;
 	/* calloc initializes the memory */
-	if ((newconn=calloc(1,sizeof(struct vde_vlan_conn)))==NULL) {
+	if ((newconn=calloc(1, sizeof(struct vde_vlan_conn)))==NULL) {
 		errno = ENOMEM;
 		goto error;
 	}
@@ -219,11 +219,11 @@ void dump(void *buf, size_t len) {
 #endif
 
 /* Right to Left <---- */
-static ssize_t vde_vlan_recv(VDECONN *conn,void *buf,size_t len,int flags) {
+static ssize_t vde_vlan_recv(VDECONN *conn, void *buf, size_t len, int flags) {
 	struct vde_vlan_conn *vde_conn = (struct vde_vlan_conn *)conn;
 	/* Length of the received packet */
 	ssize_t retval = vde_recv(vde_conn->conn, buf, len, flags);
-	if (retval >= sizeof(struct ether_header)) {
+	if (retval >= (ssize_t)sizeof(struct ether_header)) {
 		struct ether_header *hdr = buf;		/* Cast in struct ether_header */
 		/* Get VLAN header from Ethernet header:
 		 	The VLAN header is after the Ethernet header */
@@ -268,7 +268,7 @@ error:
 }
 
 /* Left to Right ----> */
-static ssize_t vde_vlan_send(VDECONN *conn,const void *buf, size_t len,int flags) {
+static ssize_t vde_vlan_send(VDECONN *conn, const void *buf, size_t len, int flags) {
 	struct vde_vlan_conn *vde_conn = (struct vde_vlan_conn *)conn;
 	ssize_t retval;
 
@@ -281,7 +281,7 @@ static ssize_t vde_vlan_send(VDECONN *conn,const void *buf, size_t len,int flags
 			uint16_t vlan = ntohs(vlanhdr->vlan) & VLANMASK;
 			if (vlan == vde_conn->tag2untag) {
 			/* The packet has been previously received untagged */
-				size_t newlen = len - sizeof(struct vlan_hdr);
+				ssize_t newlen = len - sizeof(struct vlan_hdr);
 				/* Buffer for containing the packet without vlan header */
 				char newbuf[newlen];
 				struct ether_header *newhdr = (void *) newbuf;
@@ -312,23 +312,24 @@ static ssize_t vde_vlan_send(VDECONN *conn,const void *buf, size_t len,int flags
 					/* Packet is discarded */
 					return len;
 				default:
-					;
-					size_t newlen = len + sizeof(struct vlan_hdr);
-					char newbuf[newlen];	/* Local buffer */
-					struct ether_header *newhdr = (void *) newbuf;
-					struct vlan_hdr *newvlanhdr = (void *) (newhdr + 1);
-					/* Copy ethernet header in the local buffer */
-					*newhdr = *hdr;
-					newhdr->ether_type = htons(vde_conn->ether_type);
-					/* Fill vlan header with the untagged VLAN's tag */
-					newvlanhdr->vlan = htons(vde_conn->untagged);
-					newvlanhdr->ether_type = hdr->ether_type;
-					/* Copy payload in local buffer */
-					memcpy(newvlanhdr + 1, hdr + 1, len - sizeof(struct ether_header));
-					retval = vde_send(vde_conn->conn, newbuf, newlen, flags);
-					/* The caller is expecting to send a certain amount of bytes */
-					if (retval > len) retval = len;
-					return retval;
+					{
+						size_t newlen = len + sizeof(struct vlan_hdr);
+						char newbuf[newlen];	/* Local buffer */
+						struct ether_header *newhdr = (void *) newbuf;
+						struct vlan_hdr *newvlanhdr = (void *) (newhdr + 1);
+						/* Copy ethernet header in the local buffer */
+						*newhdr = *hdr;
+						newhdr->ether_type = htons(vde_conn->ether_type);
+						/* Fill vlan header with the untagged VLAN's tag */
+						newvlanhdr->vlan = htons(vde_conn->untagged);
+						newvlanhdr->ether_type = hdr->ether_type;
+						/* Copy payload in local buffer */
+						memcpy(newvlanhdr + 1, hdr + 1, len - sizeof(struct ether_header));
+						retval = vde_send(vde_conn->conn, newbuf, newlen, flags);
+						/* The caller is expecting to send a certain amount of bytes */
+						if (retval > (ssize_t) len) retval = len;
+						return retval;
+					}
 			}
 		}
 	} else

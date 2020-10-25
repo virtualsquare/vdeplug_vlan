@@ -7,6 +7,7 @@ project("vdeplug_vlan"
 
 include(GNUInstallDirs)
 include(CheckIncludeFile)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FORTIFY_SOURCE=2 -O2 -pedantic -Wall -Wextra")
 
 set(CMAKE_REQUIRED_QUIET TRUE)
 set(LIBS_REQUIRED vdeplug_mod)

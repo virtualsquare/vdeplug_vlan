@@ -57,7 +57,7 @@ A string used to specify the VLANs to which the VM is connected in tagged mode\.
 A boolean argument to be used only if the connection uses trunking\. If used the VM will be able to send and receive packets from VLANs not listed in the tag string\.
 .TP
 \fBq\fR, \fBqinq\fR, \fBad\fR
-Use the wthernet type 0x88A8 for the double tagging protool 802\.1ad (also known as QinQ)\.
+Use the ethernet type 0x88A8 for the double tagging protool 802\.1ad (also known as QinQ)\.
 .SH "EXAMPLES"
 \fBvlan://3{tap://mytap}\fR
 .P
