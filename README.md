@@ -22,7 +22,7 @@ $ sudo make install
 
 ## usage examples (tutorial)
 
-The following examples are UVDELs (Unified VDE Locator) to be used with programs
+The following examples are VNLs (Virtual Network Locator) to be used with programs
 supporting vde as specified by the syntax of those programs.
 
 ### Connect the VM to VLAN 3
